@@ -69,8 +69,22 @@ export default function Page() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [activeModel, setActiveModel] = useState('LUNGS')
   const [activeSection, setActiveSection] = useState('Overview')
+  const [runResult, setRunResult] = useState<{ runId: string; finding: string; confidence: string; routedEvidence: string[] } | null>(null)
   const patient = patients[caseKey]
-  const execute = () => { setRunning(true); window.setTimeout(() => setRunning(false), 1800) }
+  const execute = async () => {
+    setRunning(true)
+    setRunResult(null)
+    try {
+      const response = await fetch('/api/screening', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caseKey }) })
+      if (!response.ok) throw new Error('Screening request failed')
+      const result = await response.json()
+      setRunResult(result)
+    } catch {
+      setRunResult({ runId: 'LOCAL-DEMO', finding: patient.primary, confidence: patient.score, routedEvidence: ['Evidence queue', 'Clinical history'] })
+    } finally {
+      setRunning(false)
+    }
+  }
   const modelDetails: Record<string, string> = { LUNGS: 'MobileNetV3 · ONNX INT8 · 118 MB', BRAIN: 'ResNet18 · FP16 · staged for routing', HEART: 'ECGNet · quantized · signal ready', SKIN: 'EfficientNet · INT8 · lesion classifier' }
 
   return <main className="app-shell">
@@ -81,7 +95,7 @@ export default function Page() {
       <aside className="rail"><div className="rail-section"><SectionLabel>COMMAND</SectionLabel><button className={`rail-link ${activeSection === 'Overview' ? 'active' : ''}`} onClick={() => setActiveSection('Overview')}><LayoutDashboard /> Overview</button><button className={`rail-link ${activeSection === 'Orchestration' ? 'active' : ''}`} onClick={() => setActiveSection('Orchestration')}><Network /> Orchestration <em>06</em></button><button className={`rail-link ${activeSection === 'Patient records' ? 'active' : ''}`} onClick={() => setActiveSection('Patient records')}><FileText /> Patient records</button><button className={`rail-link ${activeSection === 'Runtime health' ? 'active' : ''}`} onClick={() => setActiveSection('Runtime health')}><Cpu /> Runtime health</button></div><div className="rail-bottom"><div className="rail-section"><SectionLabel>DEMO MODE</SectionLabel><div className="offline"><span className="offline-icon"><Zap /></span><div><strong>Edge / offline</strong><small>ONNX runtime ready</small></div><span className="switch on" /></div></div><div className="build">CLINIQ OS 2.4.1<br/><span>BUILD 06 · 24H SPRINT</span></div></div></aside>
 
       <section className="main-content">
-        <div className="hero-row"><div><div className="kicker"><span className="kicker-line"/> PATIENT-CENTRIC SCREENING</div><h1>One patient.<br/><span>Six models.</span> One clear signal.</h1><p className="hero-copy">A constrained-compute clinical copilot that routes only the evidence required, unloads every model after inference, and grounds every finding in patient history.</p></div><div className="hero-actions"><button className="help" onClick={() => setHelpOpen(true)}><CircleHelp /> How it works</button><button className="execute" onClick={execute} disabled={running}><Play /> {running ? 'Running pipeline' : 'Run screening'} <ArrowRight /></button></div></div>
+        <div className="hero-row"><div><div className="kicker"><span className="kicker-line"/> PATIENT-CENTRIC SCREENING</div><h1>One patient.<br/><span>Six models.</span> One clear signal.</h1><p className="hero-copy">A constrained-compute clinical copilot that routes only the evidence required, unloads every model after inference, and grounds every finding in patient history.</p></div><div className="hero-actions"><button className="help" onClick={() => setHelpOpen(true)}><CircleHelp /> How it works</button><button className="execute" onClick={execute} disabled={running}><Play /> {running ? 'Running pipeline' : 'Run screening'} <ArrowRight /></button>{runResult && <div className="run-confirmation" role="status"><Dot /> <span><strong>{runResult.runId}</strong> · {runResult.confidence} confidence</span></div>}</div></div>
 
         <div className="patient-strip"><div className="patient-main"><div className="patient-face"><UserRound /></div><div><SectionLabel>ACTIVE PATIENT / CASE {patient.case}</SectionLabel><h2>{patient.name}</h2><p>{patient.age} years · <span className="mono">{patient.id}</span></p></div></div><div className="patient-context"><span>CLINICAL CONTEXT</span><strong>{patient.history}</strong></div><div className="case-control"><label htmlFor="case">DEMO CASE</label><select id="case" value={caseKey} onChange={(e) => setCaseKey(e.target.value as keyof typeof patients)}><option value="A">A · Chest X-ray</option><option value="B">B · ECG + Brain</option><option value="C">C · Skin lesion</option></select></div><div className="ready"><Dot /><span>READY</span></div></div>
 
