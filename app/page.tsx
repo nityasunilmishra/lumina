@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Activity,
   AlertTriangle,
@@ -61,6 +62,9 @@ function Xray({ heatmap }: { heatmap: boolean }) {
 }
 
 export default function Page() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const sectionFromPath = pathname === '/orchestration' ? 'Orchestration' : pathname === '/patients' ? 'Patient records' : pathname === '/runtime' ? 'Runtime health' : 'Overview'
   const [caseKey, setCaseKey] = useState<keyof typeof patients>('A')
   const [heatmap, setHeatmap] = useState(true)
   const [activeTab, setActiveTab] = useState('Scan')
@@ -68,10 +72,18 @@ export default function Page() {
   const [noticeVisible, setNoticeVisible] = useState(true)
   const [helpOpen, setHelpOpen] = useState(false)
   const [activeModel, setActiveModel] = useState('LUNGS')
-  const [activeSection, setActiveSection] = useState('Overview')
+  const [activeSection, setActiveSection] = useState(sectionFromPath)
   const [runResult, setRunResult] = useState<{ runId: string; finding: string; confidence: string; routedEvidence: string[] } | null>(null)
   const [pipelineStep, setPipelineStep] = useState(0)
   const patient = patients[caseKey]
+  const goToSection = (section: string, path: string) => {
+    setActiveSection(section)
+    router.push(path)
+  }
+
+  useEffect(() => {
+    setActiveSection(sectionFromPath)
+  }, [sectionFromPath])
 
   useEffect(() => {
     if (!running) return
@@ -102,7 +114,7 @@ export default function Page() {
     <header className="command-bar"><div className="wordmark"><div className="mark"><Waves /></div><div><strong>CLINIQ<span>/</span>OS</strong><small>MULTIMODAL CLINICAL INTELLIGENCE</small></div></div><div className="command-center"><span>WORKSPACE</span><strong>LIVE SCREENING / EL-04</strong></div><div className="operator"><Dot /><span>CPU NODE 01 · ONLINE</span><div className="operator-avatar">RM</div><ChevronDown /></div></header>
 
     <div className="workspace">
-      <aside className="rail"><div className="rail-section"><SectionLabel>COMMAND</SectionLabel><button className={`rail-link ${activeSection === 'Overview' ? 'active' : ''}`} onClick={() => setActiveSection('Overview')}><LayoutDashboard /> Overview</button><button className={`rail-link ${activeSection === 'Orchestration' ? 'active' : ''}`} onClick={() => setActiveSection('Orchestration')}><Network /> Orchestration <em>06</em></button><button className={`rail-link ${activeSection === 'Patient records' ? 'active' : ''}`} onClick={() => setActiveSection('Patient records')}><FileText /> Patient records</button><button className={`rail-link ${activeSection === 'Runtime health' ? 'active' : ''}`} onClick={() => setActiveSection('Runtime health')}><Cpu /> Runtime health</button></div><div className="rail-bottom"><div className="rail-section"><SectionLabel>DEMO MODE</SectionLabel><div className="offline"><span className="offline-icon"><Zap /></span><div><strong>Edge / offline</strong><small>ONNX runtime ready</small></div><span className="switch on" /></div></div><div className="build">CLINIQ OS 2.4.1<br/><span>BUILD 06 · 24H SPRINT</span></div></div></aside>
+      <aside className="rail"><div className="rail-section"><SectionLabel>COMMAND</SectionLabel><button className={`rail-link ${activeSection === 'Overview' ? 'active' : ''}`} onClick={() => goToSection('Overview', '/')}><LayoutDashboard /> Overview</button><button className={`rail-link ${activeSection === 'Orchestration' ? 'active' : ''}`} onClick={() => goToSection('Orchestration', '/orchestration')}><Network /> Orchestration <em>06</em></button><button className={`rail-link ${activeSection === 'Patient records' ? 'active' : ''}`} onClick={() => goToSection('Patient records', '/patients')}><FileText /> Patient records</button><button className={`rail-link ${activeSection === 'Runtime health' ? 'active' : ''}`} onClick={() => goToSection('Runtime health', '/runtime')}><Cpu /> Runtime health</button></div><div className="rail-bottom"><div className="rail-section"><SectionLabel>DEMO MODE</SectionLabel><div className="offline"><span className="offline-icon"><Zap /></span><div><strong>Edge / offline</strong><small>ONNX runtime ready</small></div><span className="switch on" /></div></div><div className="build">CLINIQ OS 2.4.1<br/><span>BUILD 06 · 24H SPRINT</span></div></div></aside>
 
       <section className="main-content">
         <div className="hero-row"><div><div className="kicker"><span className="kicker-line"/> PATIENT-CENTRIC SCREENING</div><h1>One patient.<br/><span>Six models.</span> One clear signal.</h1><p className="hero-copy">A constrained-compute clinical copilot that routes only the evidence required, unloads every model after inference, and grounds every finding in patient history.</p></div><div className="hero-actions"><button className="help" onClick={() => setHelpOpen(true)}><CircleHelp /> How it works</button><button className="execute" onClick={execute} disabled={running}><Play /> {running ? 'Running pipeline' : 'Run screening'} <ArrowRight /></button>{runResult && <div className="run-confirmation" role="status"><Dot /> <span><strong>{runResult.runId}</strong> · {runResult.confidence} confidence</span></div>}</div></div><div className="pipeline-strip" aria-label="Screening pipeline"><button className={pipelineStep >= 1 ? 'done' : ''} onClick={() => setPipelineStep(1)}><span>01</span>Route evidence</button><i className={pipelineStep >= 2 ? 'done' : ''} /><button className={pipelineStep >= 2 ? 'done' : ''} onClick={() => setPipelineStep(2)}><span>02</span>Run models</button><i className={pipelineStep >= 3 ? 'done' : ''} /><button className={pipelineStep >= 3 ? 'done' : ''} onClick={() => setPipelineStep(3)}><span>03</span>Review signal</button></div>
